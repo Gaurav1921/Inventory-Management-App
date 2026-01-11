@@ -56,7 +56,7 @@ def login():
     st.markdown("<br><br><br>", unsafe_allow_html=True)
     col_info, col_login = st.columns([1.2, 1], gap="large")
     with col_info:
-        st.markdown("<div class='login-hero'>", unsafe_allow_html=True)
+        # st.markdown("<div class='login-hero'>", unsafe_allow_html=True)
         st.markdown("# 🏮 Haveli Electricals")
         st.markdown("### Professional Inventory & Billing Management")
         st.write("")

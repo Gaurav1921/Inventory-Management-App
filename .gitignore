@@ -1,0 +1,10 @@
+# Private Environment Variables
+.env
+
+# Python folders
+__pycache__/
+*.pyc
+
+# Streamlit/OS folders
+.streamlit/
+.DS_Store

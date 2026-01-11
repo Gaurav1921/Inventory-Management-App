@@ -1,24 +1,33 @@
 import streamlit as st
 from src.database import fetch_shop_settings, update_shop_settings
 
-# 1. Page Config
-st.set_page_config(page_title="Haveli Settings", layout="wide")
+# --- 1. PAGE CONFIG & HIDE DEFAULTS ---
+st.set_page_config(page_title="Haveli Settings", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. Sophisticated "Haveli Red" UI CSS
+# --- 2. THEME & PERSISTENT NAVIGATION CSS ---
 st.markdown("""
     <style>
-    /* Main Background */
-    .main { 
-        background-color: #0f0f0f; 
+    .main { background-color: #0f0f0f; }
+    html, body, [class*="css"] { color: #e0e0e0 !important; font-family: 'Inter', sans-serif; }
+    
+    /* HIDE DEFAULT SIDEBAR NAVIGATION */
+    [data-testid="stSidebarNav"] {display: none !important;}
+
+    /* FORCE RED BUTTONS - Prevents default Streamlit Blue */
+    .stButton > button {
+        border-radius: 6px;
+        background-color: #b71c1c !important; 
+        color: white !important;
+        border: 1px solid #4a0e0e !important;
+        font-weight: 600;
     }
     
-    /* Text Visibility */
-    html, body, [class*="css"] {
-        color: #e0e0e0 !important;
-        font-family: 'Inter', sans-serif;
+    .stButton > button:hover {
+        background-color: #d32f2f !important;
+        border-color: #ff5252 !important;
     }
 
-    /* Target ONLY the main container for the border, NOT empty columns */
+    /* Target main containers but prevent styling empty spacer columns */
     div[data-testid="stVerticalBlockBorderWrapper"] > div > div > div[data-testid="stVerticalBlock"] {
         padding: 0px !important;
     }
@@ -41,29 +50,6 @@ st.markdown("""
         padding-bottom: 8px;
     }
 
-    /* Primary Button - Deep Red */
-    .stButton > button {
-        border-radius: 6px;
-        background-color: #b71c1c !important;
-        color: white !important;
-        border: none;
-        padding: 0.6rem 2.5rem;
-        font-weight: 600;
-        width: 100% !important;
-    }
-    
-    .stButton > button:hover {
-        background-color: #d32f2f !important;
-    }
-
-    /* --- FLEXBOX CENTERING --- */
-    /* This centers the specific "Save" button row without using columns */
-    div.stFormSubmitButton {
-        display: flex;
-        justify-content: center;
-        margin-top: 20px;
-    }
-    
     /* Input Styling */
     .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>div>input {
         background-color: #222 !important;
@@ -79,7 +65,45 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- HEADER ---
+# --- 3. LOGIN PROTECTION ---
+# Check session state to ensure user is logged in
+if 'logged_in' not in st.session_state or not st.session_state.logged_in:
+    st.warning("Access Denied. Please login from the Billing page.")
+    if st.button("Go to Login Hub"):
+        st.switch_page("app.py")
+    st.stop()
+
+# --- 4. PERSISTENT TOP NAVIGATION ---
+# Using buttons + st.switch_page ensures state is preserved across pages
+nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
+with nav_col1:
+    if st.button("⚡ Billing Hub", use_container_width=True):
+        st.switch_page("app.py")
+with nav_col2:
+    if st.button("📦 Inventory", use_container_width=True):
+        st.switch_page("pages/inventory.py")
+with nav_col3:
+    if st.button("📊 Insights", use_container_width=True):
+        st.switch_page("pages/insights.py")
+with nav_col4:
+    # Settings is active - styled with a highlight border
+    st.markdown('<div style="border: 2px solid #ff5252; border-radius: 8px;">', unsafe_allow_html=True)
+    st.button("⚙️ Settings", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+st.divider()
+
+# --- 5. CLEAN SIDEBAR (Admin Info) ---
+with st.sidebar:
+    st.markdown("### 🏮 Admin Panel")
+    st.write(f"User: **{st.secrets['ADMIN_USER']}**")
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state.logged_in = False
+        st.switch_page("app.py")
+    st.divider()
+    st.info("Haveli Electricals v1.2")
+
+# --- 6. SETTINGS LOGIC ---
 st.markdown("## ⚙️ Shop Configuration")
 
 # Fetch data
@@ -90,7 +114,6 @@ except Exception:
     settings = {"shop_name": "Haveli Electricals", "shop_address": "", "shop_contact": "", "upi_id": "", "tax_percent": 0}
 
 # --- MAIN SETTINGS CARD ---
-# We use st.form directly to avoid the "box-in-a-box" issue
 with st.form("shop_settings_form"):
     col1, col2 = st.columns(2, gap="large")
     
@@ -109,20 +132,21 @@ with st.form("shop_settings_form"):
         st.info("💡 Changes update your PDF invoices and WhatsApp receipts instantly.")
 
     # Centered Submit Button
-    # Note: Removed columns here. The CSS class .stFormSubmitButton handles centering.
-    if st.form_submit_button("💾 Save All Changes"):
-        update_data = {
-            "shop_name": new_name,
-            "shop_address": new_address,
-            "shop_contact": new_contact,
-            "upi_id": new_upi,
-            "tax_percent": new_tax
-        }
-        try:
-            update_shop_settings(update_data)
-            st.success("Settings Saved!")
-            st.rerun()
-        except Exception as e:
-            st.error(f"Error: {e}")
+    col_sub_1, col_sub_2, col_sub_3 = st.columns([1, 1, 1])
+    with col_sub_2:
+        if st.form_submit_button("💾 Save All Changes", use_container_width=True):
+            update_data = {
+                "shop_name": new_name,
+                "shop_address": new_address,
+                "shop_contact": new_contact,
+                "upi_id": new_upi,
+                "tax_percent": new_tax
+            }
+            try:
+                update_shop_settings(update_data)
+                st.success("Settings Saved!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error: {e}")
 
-st.markdown("<p style='text-align: center; color: #666; font-size: 0.8rem; margin-top: 20px;'>Haveli Electricals Management System v1.0</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #666; font-size: 0.8rem; margin-top: 20px;'>Haveli Electricals Management System v1.2</p>", unsafe_allow_html=True)
